@@ -1,3 +1,6 @@
+import { urlencoded as parseHTMLForms } from 'body-parser'
+import cookieSession from 'cookie-session'
+import csrfProtect from 'csurf'
 import express from 'express'
 import { readFileSync } from 'fs'
 import createLogger from 'morgan'
@@ -15,10 +18,19 @@ app.set('views', path.resolve(__dirname, 'views'))
 app.set('view engine', 'pug')
 
 app.use(express.static(publicPath))
+app.use(parseHTMLForms({ extended: true }))
 
 if (!isTest) {
   app.use(createLogger(isDev ? 'dev' : 'combined'))
 }
+
+app.use(
+  cookieSession({
+    name: 'wazaaa:session',
+    secret: 'Node.js c’est de la balle !',
+  })
+)
+app.use(csrfProtect())
 
 app.locals.title = 'Wazaaa'
 app.locals.__assets = JSON.parse(
@@ -32,6 +44,7 @@ if (isDev) {
 app.use((req, res, next) => {
   const { query, url } = req
   Object.assign(res.locals, {
+    csrfToken: req.csrfToken(),
     flash: [],
     query,
     url,
