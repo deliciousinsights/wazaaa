@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import passport from 'passport'
+import { Strategy as FacebookStrategy } from 'passport-facebook'
 import { Strategy as TwitterStrategy } from 'passport-twitter'
 
 import User from '../models/User'
@@ -19,6 +20,21 @@ passport.use(
         'twitter',
         done
       )
+    }
+  )
+)
+
+// …et la stratégie Facebook
+passport.use(
+  new FacebookStrategy(
+    {
+      // **Ne partagez pas ces clés Facebook n'importe où : [faites les vôtres](https://developers.facebook.com/) !**
+      clientID: '213376528865347',
+      clientSecret: '753494ad3c02f9d9b5fb3617bbd88c1e',
+      callbackURL: '/users/auth/facebook/callback',
+    },
+    (token, tokenSecret, profile, done) => {
+      User.findOrCreateByAuth(profile.id, profile.displayName, 'facebook', done)
     }
   )
 )
