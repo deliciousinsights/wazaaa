@@ -1,10 +1,10 @@
-import request from 'supertest'
 import sinon from 'sinon'
+import request from 'supertest'
 
-import app from '../app'
 import { didFlash } from '../../test/custom-assertions'
-import Entry from '../models/Entry'
 import generateFakeEntry from '../../test/factories/entries'
+import app from '../app'
+import Entry from '../models/Entry'
 import User from '../models/User'
 
 describe('Entries controller', () => {
@@ -21,6 +21,8 @@ describe('Entries controller', () => {
   })
 
   it('should route to listing on `/entries`', () => {
+    sandbox.stub(Entry, 'getEntries').returns(Promise.resolve([]))
+
     return request(app)
       .get('/entries')
       .expect(200)

@@ -59,8 +59,14 @@ function downvoteEntry(req, res) {
   voteOnEntry(req, res, -1)
 }
 
-function listEntries(req, res) {
-  res.render('entries/index', { pageTitle: 'Les bookmarks', entries: [] })
+async function listEntries(req, res) {
+  try {
+    const entries = await Entry.getEntries(req.query)
+    res.render('entries/index', { pageTitle: 'Les bookmarks', entries })
+  } catch (err) {
+    req.flash('error', `Impossible d’afficher les bookmarks : ${err.message}`)
+    res.redirect('/')
+  }
 }
 
 const NON_RESOURCE_IDS = ['new']

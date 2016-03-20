@@ -21,6 +21,26 @@ const entrySchema = new Schema({
 })
 
 Object.assign(entrySchema.statics, {
+  getEntries(filter) {
+    const tags = normalizeTags(
+      _.isString(filter) ? filter : filter && filter.tags
+    )
+    const scope = this.find()
+      .select('-comments -upVoters -downVoters')
+      .populate('poster')
+      .sort({
+        score: -1,
+        postedAt: -1,
+      })
+
+    if (tags.length === 0) {
+      return scope
+    }
+
+    const op = filter.tagMode === 'any' ? 'in' : 'all'
+    return scope.where('tags')[op](tags)
+  },
+
   getEntry(id) {
     return this.findById(id).populate('poster comments.author')
   },
