@@ -4,11 +4,15 @@ import cookieSession from 'cookie-session'
 import csrfProtect from 'csurf'
 import express from 'express'
 import { readFileSync } from 'fs'
+import mongoose from 'mongoose'
 import createLogger from 'morgan'
 import path from 'path'
 
+import populateHelpers from './common/helpers'
 import entriesController from './controllers/entries'
 import mainController from './controllers/main'
+
+mongoose.Promise = Promise
 
 const app = express()
 const isDev = app.get('env') === 'development'
@@ -38,6 +42,8 @@ app.locals.title = 'Wazaaa'
 app.locals.__assets = JSON.parse(
   readFileSync(path.resolve(publicPath, 'manifest.json'), 'utf-8')
 )
+
+populateHelpers(app.locals)
 
 if (isDev) {
   app.locals.pretty = true
