@@ -5,4 +5,9 @@ mixin navlink(linkUrl, glyph, label)
       = ' ' + label
 
 mixin tagField(id)
-  input.form-control(id=id name="tags" placeholder="tag, tag…" value=query.tags data-tags=(tags || []))
+  - const rawTags = typeof query.tags === 'string' ? query.tags.split(/[,\s]+/) : query.tags
+  - const queryTags = (rawTags || []).filter(Boolean)
+  - const fieldTags = [...new Set((tags || []).concat(queryTags).sort())]
+  select.form-control(id=id name="tags" multiple)
+    each tag in fieldTags
+      option(selected=queryTags.includes(tag))= tag
