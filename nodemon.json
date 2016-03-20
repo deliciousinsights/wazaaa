@@ -1,0 +1,15 @@
+{
+  "verbose": false,
+  "ignore": [
+    ".gitignore",
+    ".git",
+    "*.pug",
+    "src/client",
+    "src/**/*.spec.js",
+    "node_modules",
+    "public",
+    "test",
+    "webpack.config.js"
+  ],
+  "watch": "*.js"
+}
