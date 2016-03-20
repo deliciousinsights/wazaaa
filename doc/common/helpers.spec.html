@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en"><head><title>common/helpers.spec</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="common/helpers.spec"><meta name="groc-project-path" content="src/common/helpers.spec.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/common/helpers.spec.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> { expect } <span class="hljs-keyword">from</span> <span class="hljs-string">'chai'</span>
+<span class="hljs-keyword">import</span> sinon <span class="hljs-keyword">from</span> <span class="hljs-string">'sinon'</span>
+
+<span class="hljs-keyword">import</span> populateHelpers <span class="hljs-keyword">from</span> <span class="hljs-string">'./helpers'</span>
+
+const scope = {}
+populateHelpers(scope)
+
+describe(<span class="hljs-string">'formatDate'</span>, () =&gt; {
+  const { formatDate } = scope
+  let clock
+
+  beforeEach(() =&gt; {
+    clock = sinon.useFakeTimers()
+  })
+
+  afterEach(() =&gt; {
+    clock.restore()
+  })
+
+  it(<span class="hljs-string">'should use French'</span>, () =&gt; {
+    expect(formatDate(new Date())).to.contain(<span class="hljs-string">'janvier'</span>)
+  })
+
+  it(<span class="hljs-string">'should honor a custom format'</span>, () =&gt; {
+    expect(formatDate(new Date(), <span class="hljs-string">'YYYY-MM-DD'</span>)).to.equal(<span class="hljs-string">'1970-01-01'</span>)
+  })
+
+  it(<span class="hljs-string">'should default to current datetime'</span>, () =&gt; {
+    expect(formatDate()).to.equal(formatDate(new Date()))
+  })
+
+  it(<span class="hljs-string">'should default to a fixed, long-form format'</span>, () =&gt; {
+    expect(formatDate(new Date())).to.equal(<span class="hljs-string">'jeudi 1 janvier 1970 à 01:00'</span>)
+  })
+
+  it(<span class="hljs-string">'should honor the `postedAt` property of its argument, if present'</span>, () =&gt; {
+    expect(formatDate({ postedAt: 1459246921006 }, <span class="hljs-string">'YYYY-MM-DD'</span>)).to.equal(
+      <span class="hljs-string">'2016-03-29'</span>
+    )
+  })
+})
+
+describe(<span class="hljs-string">'pluralize'</span>, () =&gt; {
+  const { pluralize } = scope
+
+  it(<span class="hljs-string">'should use untouched singular if below 2'</span>, () =&gt; {
+    expect(pluralize(0, <span class="hljs-string">'wombat'</span>)).to.equal(<span class="hljs-string">'0 wombat'</span>)
+    expect(pluralize(1, <span class="hljs-string">'wombat'</span>)).to.equal(<span class="hljs-string">'1 wombat'</span>)
+    expect(pluralize(1, <span class="hljs-string">'wombat'</span>, <span class="hljs-string">'wizzbangs'</span>)).to.equal(<span class="hljs-string">'1 wombat'</span>)
+  })
+
+  it(<span class="hljs-string">'should use s-suffixed singular if above 1 and no custom plural'</span>, () =&gt; {
+    expect(pluralize(2, <span class="hljs-string">'wombat'</span>)).to.equal(<span class="hljs-string">'2 wombats'</span>)
+    expect(pluralize(42, <span class="hljs-string">'wombat'</span>)).to.equal(<span class="hljs-string">'42 wombats'</span>)
+  })
+
+  it(<span class="hljs-string">'should use custom plural if provided and above 1'</span>, () =&gt; {
+    expect(pluralize(3, <span class="hljs-string">'axis'</span>, <span class="hljs-string">'axes'</span>)).to.equal(<span class="hljs-string">'3 axes'</span>)
+  })
+})</div></div></div></div></body></html>

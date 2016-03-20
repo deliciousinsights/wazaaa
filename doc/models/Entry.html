@@ -1,0 +1,116 @@
+<!DOCTYPE html><html lang="en"><head><title>models/Entry</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="models/Entry"><meta name="groc-project-path" content="src/models/Entry.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/models/Entry.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="modle-pour-les-bookmarks">Modèle pour les bookmarks</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> mongoose, { Schema } <span class="hljs-keyword">from</span> <span class="hljs-string">'mongoose'</span>
+<span class="hljs-keyword">import</span> _ <span class="hljs-keyword">from</span> <span class="hljs-string">'underscore'</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="le-schma-qui-va-bien">Le schéma qui va bien</h2></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Mongoose nous encourage fortement à produire des <strong>schémas</strong> pour nos documents
+(on dit « documents », pas « enregistrements » en bases documentaires, tout comme
+on dit « collections » et pas « tables »).  Ça n&#39;a rien d&#39;obligatoire, les bases
+documentaires étant traditionnellement <em>schema-less</em> et nous autorisant à tripatouiller
+chaque document comme bon nous semble, mais c&#39;est de bon ton pour plusieurs raisons :</p>
+<ul>
+<li>Ça « documente » les propriétés (pas « champs »…) auxquelles s&#39;attendre, et pas seulement
+leurs noms mais aussi leurs types, valeurs par défaut, contraintes, et éventuelle
+indexation.</li>
+<li>Ça permet à Mongoose de garantir certains aspects, dont les valeurs par défaut et la
+définition effective des index.</li>
+<li>Si on passe le schéma en <a href="http://mongoosejs.com/docs/guide.html#strict">mode strict</a>,
+ça force son respect par nos documents (en ignorant les propriétés inconnues ou en levant
+carrément une exception).</li>
+</ul>
+<p><a href="http://mongoosejs.com/docs/guide.html">En savoir plus sur les schémas Mongoose</a></p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> entrySchema = <span class="hljs-keyword">new</span> Schema({</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Collection intégrée/incluse, avec son propre sous-schéma</p></div></div><div class="code"><div class="wrapper">  comments: [
+    {
+      text: { type: <span class="hljs-built_in">String</span>, required: <span class="hljs-literal">true</span> },
+      author: { type: <span class="hljs-built_in">String</span>, ref: <span class="hljs-string">'User'</span> },
+      postedAt: { type: <span class="hljs-built_in">Date</span>, <span class="hljs-keyword">default</span>: <span class="hljs-built_in">Date</span>.now, index: <span class="hljs-literal">true</span> },
+    },
+  ],
+  downVoters: [{ type: <span class="hljs-built_in">String</span>, ref: <span class="hljs-string">'User'</span> }],
+  excerpt: <span class="hljs-built_in">String</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Notez la fonction <code>Date.now</code> (non appelée, juste référencée) en valeur par défaut</p></div></div><div class="code"><div class="wrapper">  postedAt: { type: <span class="hljs-built_in">Date</span>, <span class="hljs-keyword">default</span>: <span class="hljs-built_in">Date</span>.now, index: <span class="hljs-literal">true</span> },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Liaison mongoDB par référence plutôt que par inclusion ; on est ici sur du N-N
+et il y aura sans doute bien moins d&#39;utilisateurs que de bookmarks, ce qui rend l&#39;inclusion
+<a href="http://docs.mongodb.org/manual/tutorial/model-referenced-one-to-many-relationships-between-documents/#data-modeling-publisher-and-books">encore moins adaptée</a>.
+Vu que notre modèle <code>User</code> a une clé primaire non pas de type <code>ObjectId</code>
+(cas par défaut) mais de type <code>String</code>, on se cale là-dessus.  Préciser le champ <code>ref</code> ouvre
+la voie à la fonctionnalité super cool <a href="http://mongoosejs.com/docs/populate.html"><code>.populate</code></a> pour le <em>eager loading</em>.</p></div></div><div class="code"><div class="wrapper">  poster: { type: <span class="hljs-built_in">String</span>, ref: <span class="hljs-string">'User'</span> },
+  score: { type: <span class="hljs-built_in">Number</span>, <span class="hljs-keyword">default</span>: <span class="hljs-number">0</span>, index: <span class="hljs-literal">true</span> },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>L&#39;index portant sur tout le tableau et non sur chaque élément, on fait un schéma dont le type est un tableau,
+et non un tableau dont le type est un schéma (comme pour <code>comments</code> ou <code>upVoters</code> ci-après).</p></div></div><div class="code"><div class="wrapper">  tags: { type: [<span class="hljs-built_in">String</span>], index: <span class="hljs-literal">true</span> },
+  title: <span class="hljs-built_in">String</span>,
+  upVoters: [{ type: <span class="hljs-built_in">String</span>, ref: <span class="hljs-string">'User'</span> }],
+  url: { type: <span class="hljs-built_in">String</span>, required: <span class="hljs-literal">true</span> },
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="mthodes-statiques">Méthodes statiques</h2>
+<p>Chaque modèle produit par Mongoose sur base de ce schéma disposera de ces méthodes statiques.
+Notre objectif principal ici est d&#39;isoler autant que possible les contrôleurs (et le reste de la codebase,
+de façon générale) des détails techniques de l&#39;API Mongoose/mongoDB, tout en produisant systématiquement
+des promesses plutôt qu&#39;une API basée sur <em>callbacks</em>.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-built_in">Object</span>.assign(entrySchema.statics, {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Fournit une liste triée (plus hauts scores d&#39;abord, plus récents d&#39;abord par score) des bookmarks,
+filtrée par des tags éventuels, avec <em>eager loading</em> des infos d&#39;utilisateur (auteur, commentateur).</p></div></div><div class="code"><div class="wrapper">  getEntries(filter) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p><code>normalizeTags</code> est un normaliseur centralisé pour le listing et la création, voire plus bas.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">const</span> tags = normalizeTags(
+      _.isString(filter) ? filter : filter &amp;&amp; filter.tags
+    )
+    <span class="hljs-keyword">const</span> scope = <span class="hljs-keyword">this</span>.find()
+      .select(<span class="hljs-string">'-comments -upVoters -downVoters'</span>)
+      .populate(<span class="hljs-string">'poster'</span>)
+      .sort({
+        score: -<span class="hljs-number">1</span>,
+        postedAt: -<span class="hljs-number">1</span>,
+      })
+
+    <span class="hljs-keyword">if</span> (tags.length === <span class="hljs-number">0</span>) {
+      <span class="hljs-keyword">return</span> scope
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Plutôt que de se galérer à construire plusieurs objets de requêtage imbriqués, autant
+se contenter d&#39;appeler le bon opérateur (<code>in</code> ou <code>all</code>) en chaînage du <code>where</code> approprié
+(ce qui est plus lisible d&#39;ailleurs, surtout quand l&#39;opérateur est statique dans le code
+au lieu d&#39;être dynamique, comme ici).</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">const</span> op = filter.tagMode === <span class="hljs-string">'any'</span> ? <span class="hljs-string">'in'</span> : <span class="hljs-string">'all'</span>
+    <span class="hljs-keyword">return</span> scope.where(<span class="hljs-string">'tags'</span>)[op](tags)
+  },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Récupère un bookmark donné avec les infos d&#39;utilisateur pré-chargées.</p></div></div><div class="code"><div class="wrapper">  getEntry(id) {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.findById(id).populate(<span class="hljs-string">'poster comments.author'</span>)
+  },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Crée un bookmark.  Note : ici, pas besoin de <code>.exec()</code> final car <code>.create</code> n&#39;est pas une
+requête (aucun intérêt d’y chaîner des <code>.where</code>, etc.) et donc ne renvoie pas une <code>Query</code>
+mais directement une promesse, faute de <em>callback</em> passé en dernier argument.</p></div></div><div class="code"><div class="wrapper">  post(fields) {
+    fields.tags = normalizeTags(fields.tags)
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.create(fields)
+  },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Renvoie une liste dédoublonnée de tous les tags présents dans les propriétés <code>tags</code> (de type
+tableau) des bookmarks.  On note ici toute la puissance de mongoDB pour traiter des documents
+imbriqués aux types variés, en l&#39;occurrence grâce à l&#39;opérateur
+<a href="http://docs.mongodb.org/manual/reference/operator/aggregation/unwind/#pipe._S_unwind"><code>$unwind</code></a>
+dans la <em>pipeline</em> de <a href="http://docs.mongodb.org/manual/reference/method/db.collection.aggregate/#db.collection.aggregate">l’aggrégation</a>.
+De <a href="http://docs.mongodb.org/manual/reference/operator/aggregation/">nombreux opérateurs avancés</a> existent.</p></div></div><div class="code"><div class="wrapper">  tags() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.aggregate([
+      { $unwind: <span class="hljs-string">'$tags'</span> },
+      { $sortByCount: <span class="hljs-string">'$tags'</span> },
+    ]).then((tuples) =&gt; tuples.map(({ _id }) =&gt; _id))
+  },
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="mthodes-d39instance">Méthodes d&#39;instance</h2>
+<p>Chaque document produit par Mongoose sur base de ce schéma disposera de ces méthodes d&#39;instance.</p>
+<p>On pourrait démarrer chaque extension par <code>entrySchema.methods.truc = function truc…</code> mais autant
+simplifier en exploitant <code>_.extend</code>, plutôt.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-built_in">Object</span>.assign(entrySchema.methods, {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ajout d&#39;un commentaire au bookmark</p></div></div><div class="code"><div class="wrapper">  comment(author, text) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>L&#39;opérateur de mise à jour <a href="http://docs.mongodb.org/manual/reference/operator/update/push/#up._S_push"><code>$push</code></a>
+permet l&#39;ajout à une propriété tableau. Rappel : l<code>appel de</code>.exec()<code>sans argument sur un objet</code>Query` de
+Mongoose le transforme en promesse.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.update({ $push: { comments: { author, text } } })
+  },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ajout d&#39;un vote (up/down) au bookmark</p></div></div><div class="code"><div class="wrapper">  voteBy(user, offset) {
+    user = <span class="hljs-string">'id'</span> <span class="hljs-keyword">in</span> user ? user.id : user
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.update({</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>L&#39;opérateur <a href="http://docs.mongodb.org/manual/reference/operator/update/inc/#up._S_inc"><code>$inc</code></a>
+incrémente/décrémente de manière atomique un champ numérique.</p></div></div><div class="code"><div class="wrapper">      $inc: { score: offset },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>L&#39;opérateur <a href="http://docs.mongodb.org/manual/reference/operator/update/addToSet/#up._S_addToSet"><code>$addToSet</code></a>
+diffère de <code>$push</code> en ce qu&#39;il garantit tout seul l&#39;unicité dans le tableau (pas de doublons).</p></div></div><div class="code"><div class="wrapper">      $addToSet: { [offset &gt; <span class="hljs-number">0</span> ? <span class="hljs-string">'upVoters'</span> : <span class="hljs-string">'downVoters'</span>]: user },
+    })
+  },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Détermine si un utilisateur a déjà voté pour ce bookmark</p></div></div><div class="code"><div class="wrapper">  votedBy(user) {
+    user = <span class="hljs-string">'id'</span> <span class="hljs-keyword">in</span> user ? user.id : user
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.upVoters.includes(user) || <span class="hljs-keyword">this</span>.downVoters.includes(user)
+  },
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Nos modules de modèle renvoient toujours un modèle Mongoose, basé sur notre schéma.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> Model = mongoose.model(<span class="hljs-string">'Entry'</span>, entrySchema)
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> Model</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Histoire d&#39;autoriser un peu n&#39;importe quelle forme pour nos tags, suivant qui les fournits, on normalise ici.
+L&#39;idée est d&#39;accepter des <code>String</code>s comme des tableaux de <code>String</code>, chacune pouvant contenir plusieurs tags
+séparés par des espaces et/ou des virgules, avec d&#39;éventuels doublons et variations de casse, etc.</p>
+<p>On normalise tout ça à grands renforts <a href="http://underscorejs.org/">d&#39;Underscore</a> en un tableau simple de chaînes
+uniques, triées, sans <em>whitepsace</em> autour, en minuscules.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">normalizeTags</span>(<span class="hljs-params">tags</span>) </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><ol>
+<li>N&#39;avoir qu&#39;un niveau de tableau, peu importe ce qui nous est passé.</li>
+</ol></div></div><div class="code"><div class="wrapper">  tags = _.flatten([_.isString(tags) ? tags.trim() : tags])</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><ol>
+<li>Virer les <code>null</code> et <code>undefined</code> éventuels, passer en minuscules, découper sur séparateurs éventuels,
+ré-aplatir (le <code>.split</code> a engendré un tableau de tableaux), virer le whitespace autour, et finalement trier le tout.
+Notez le chaînage initial histoire de pouvoir enquiller les appels façon Objet plutôt que d&#39;imbriquer des appels
+de type <code>_.method(…)</code> à n&#39;en plus finir (on récupère la valeur obtenue au final avec <code>.value()</code>).</li>
+</ol></div></div><div class="code"><div class="wrapper">  tags = _.chain(tags)
+    .compact()
+    .map((s) =&gt; s.toLowerCase().split(<span class="hljs-regexp">/[,\s]+/</span>))
+    .flatten()
+    .invoke(<span class="hljs-string">'trim'</span>)
+    .value()
+    .sort()</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><ol>
+<li>Dédoublonner grâce à <code>Set</code></li>
+</ol></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">return</span> [...new <span class="hljs-built_in">Set</span>(tags)]
+}</div></div></div></div></body></html>

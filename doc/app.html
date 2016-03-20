@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en"><head><title>app</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="app"><meta name="groc-project-path" content="src/app.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/app.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="application-principale">Application principale</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> { urlencoded <span class="hljs-keyword">as</span> parseHTMLForms } <span class="hljs-keyword">from</span> <span class="hljs-string">'body-parser'</span>
+<span class="hljs-keyword">import</span> flash <span class="hljs-keyword">from</span> <span class="hljs-string">'connect-flash'</span>
+<span class="hljs-keyword">import</span> cookieSession <span class="hljs-keyword">from</span> <span class="hljs-string">'cookie-session'</span>
+<span class="hljs-keyword">import</span> csrfProtect <span class="hljs-keyword">from</span> <span class="hljs-string">'csurf'</span>
+<span class="hljs-keyword">import</span> express <span class="hljs-keyword">from</span> <span class="hljs-string">'express'</span>
+<span class="hljs-keyword">import</span> { readFileSync } <span class="hljs-keyword">from</span> <span class="hljs-string">'fs'</span>
+<span class="hljs-keyword">import</span> methodOverride <span class="hljs-keyword">from</span> <span class="hljs-string">'method-override'</span>
+<span class="hljs-keyword">import</span> mongoose <span class="hljs-keyword">from</span> <span class="hljs-string">'mongoose'</span>
+<span class="hljs-keyword">import</span> createLogger <span class="hljs-keyword">from</span> <span class="hljs-string">'morgan'</span>
+<span class="hljs-keyword">import</span> passport <span class="hljs-keyword">from</span> <span class="hljs-string">'passport'</span>
+<span class="hljs-keyword">import</span> path <span class="hljs-keyword">from</span> <span class="hljs-string">'path'</span>
+
+<span class="hljs-keyword">import</span> populateHelpers <span class="hljs-keyword">from</span> <span class="hljs-string">'./common/helpers'</span>
+<span class="hljs-keyword">import</span> entriesController <span class="hljs-keyword">from</span> <span class="hljs-string">'./controllers/entries'</span>
+<span class="hljs-keyword">import</span> mainController <span class="hljs-keyword">from</span> <span class="hljs-string">'./controllers/main'</span>
+<span class="hljs-keyword">import</span> usersController <span class="hljs-keyword">from</span> <span class="hljs-string">'./controllers/users'</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Mongoose exige désormais qu’on fournisse notre propre implémentation de promesses,
+plutôt que l’ancienne <code>mpromise</code> intégrée.  On se cale sur les promesses natives
+dès maintenant, pour ne pas polluer tant le serveur que les tests.</p></div></div><div class="code"><div class="wrapper">mongoose.Promise = <span class="hljs-built_in">Promise</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Crée le conteneur principal de web app (<code>app</code>), connecte le serveur HTTP dessus
+(<code>server</code>) et détermine le chemin complet des assets statiques.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> app = express()
+<span class="hljs-keyword">const</span> isDev = app.get(<span class="hljs-string">'env'</span>) === <span class="hljs-string">'development'</span>
+<span class="hljs-keyword">const</span> isTest = app.get(<span class="hljs-string">'env'</span>) === <span class="hljs-string">'test'</span>
+<span class="hljs-keyword">const</span> publicPath = path.resolve(__dirname, <span class="hljs-string">'../public'</span>)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="configuration">Configuration</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper">app.set(<span class="hljs-string">'views'</span>, path.resolve(__dirname, <span class="hljs-string">'views'</span>))
+app.set(<span class="hljs-string">'view engine'</span>, <span class="hljs-string">'pug'</span>)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Fichiers statiques.  En le chargeant tôt, on court-circuite immédiatement
+le reste des middlewares en cas de fichier statique…</p></div></div><div class="code"><div class="wrapper">app.use(express.static(publicPath))
+app.use(parseHTMLForms({ extended: <span class="hljs-literal">true</span> }))
+app.use(methodOverride((req) =&gt; req.body._method))
+
+<span class="hljs-keyword">if</span> (!isTest) {
+  app.use(createLogger(isDev ? <span class="hljs-string">'dev'</span> : <span class="hljs-string">'combined'</span>))
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p><code>cookieSession</code> stocke la session complète en cookie, pas en mémoire serveur,
+ce qui résiste aux redémarrages (notamment en dev avec <code>nodemon</code>) mais pose des
+contraintes de taille (4Ko max JSONifié + base64-encodé).</p></div></div><div class="code"><div class="wrapper">app.use(
+  cookieSession({
+    name: <span class="hljs-string">'wazaaa:session'</span>,
+    secret: <span class="hljs-string">'Node.js c’est de la balle !'</span>,
+  })
+)
+<span class="hljs-keyword">if</span> (!isTest) {
+  app.use(csrfProtect())
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Rien à voir avec Adobe Flash!  Ce sont des flashes de session--des messages qui ne
+sont retenus que jusqu’au prochain render de la session.</p></div></div><div class="code"><div class="wrapper">app.use(flash())</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Authentification avec <a href="http://passportjs.com">Passport</a></p></div></div><div class="code"><div class="wrapper">app.use(passport.initialize())
+app.use(passport.session())</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="variables-automatiques-dans-les-vues">Variables automatiques dans les vues</h2></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Variables locales partagées par toutes les vues</p></div></div><div class="code"><div class="wrapper">app.locals.title = <span class="hljs-string">'Wazaaa'</span>
+app.locals.__assets = <span class="hljs-built_in">JSON</span>.parse(
+  readFileSync(path.resolve(publicPath, <span class="hljs-string">'manifest.json'</span>), <span class="hljs-string">'utf-8'</span>)
+)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Helpers pour nos vues</p></div></div><div class="code"><div class="wrapper">populateHelpers(app.locals)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Configuration uniquement hors production</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">if</span> (isDev) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Variable spéciale utilisée par Jade pour ne pas minifier le HTML</p></div></div><div class="code"><div class="wrapper">  app.locals.pretty = <span class="hljs-literal">true</span>
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Rend l’URL, le flash, les paramètres de requête et l’utilisateur courant
+accessibles à toutes les vues</p></div></div><div class="code"><div class="wrapper">app.use((req, res, next) =&gt; {
+  <span class="hljs-keyword">const</span> { query, url, user } = req
+  <span class="hljs-built_in">Object</span>.assign(res.locals, {
+    csrfToken: (isTest &amp;&amp; <span class="hljs-string">'__TEST__'</span>) || req.csrfToken(),
+    flash: req.flash(),
+    query,
+    url,
+    user,
+  })
+  next()
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="middlewares-et-routes-applicatifs">Middlewares et routes applicatifs</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper">app.use(mainController)
+app.use(<span class="hljs-string">'/entries'</span>, entriesController)
+app.use(<span class="hljs-string">'/users'</span>, usersController)
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> app</div></div></div></div></body></html>

@@ -1,9 +1,15 @@
+//- Mixins
+//- ======
+
+//- Mixin factorisant le balisage des liens de navigation
 mixin navlink(linkUrl, glyph, label)
+  //- La propriété `url` est mise à disposition des vues par notre petit middleware dans `server.js`.
   li(class= url.startsWith(linkUrl) ? 'active' : null)
     a(href=linkUrl)
       i.glyphicon(class=`glyphicon-${glyph}`)
       = ' ' + label
 
+//- Mixin factorisant le balisage des champs de saisie des tags
 mixin tagField(id)
   - const rawTags = typeof query.tags === 'string' ? query.tags.split(/[,\s]+/) : query.tags
   - const queryTags = (rawTags || []).filter(Boolean)

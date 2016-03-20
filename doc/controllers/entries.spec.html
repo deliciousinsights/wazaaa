@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="en"><head><title>controllers/entries.spec</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="controllers/entries.spec"><meta name="groc-project-path" content="src/controllers/entries.spec.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/controllers/entries.spec.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> chai, { expect } <span class="hljs-keyword">from</span> <span class="hljs-string">'chai'</span>
+<span class="hljs-keyword">import</span> nock <span class="hljs-keyword">from</span> <span class="hljs-string">'nock'</span>
+<span class="hljs-keyword">import</span> sinon <span class="hljs-keyword">from</span> <span class="hljs-string">'sinon'</span>
+<span class="hljs-keyword">import</span> sinonChai <span class="hljs-keyword">from</span> <span class="hljs-string">'sinon-chai'</span>
+<span class="hljs-keyword">import</span> request <span class="hljs-keyword">from</span> <span class="hljs-string">'supertest'</span>
+
+<span class="hljs-keyword">import</span> { didFlash } <span class="hljs-keyword">from</span> <span class="hljs-string">'../../test/custom-assertions'</span>
+<span class="hljs-keyword">import</span> generateFakeEntry <span class="hljs-keyword">from</span> <span class="hljs-string">'../../test/factories/entries'</span>
+<span class="hljs-keyword">import</span> stubPassport <span class="hljs-keyword">from</span> <span class="hljs-string">'../../test/stubs/passport-stub'</span>
+<span class="hljs-keyword">import</span> app <span class="hljs-keyword">from</span> <span class="hljs-string">'../app'</span>
+<span class="hljs-keyword">import</span> Entry <span class="hljs-keyword">from</span> <span class="hljs-string">'../models/Entry'</span>
+<span class="hljs-keyword">import</span> * <span class="hljs-keyword">as</span> ws <span class="hljs-keyword">from</span> <span class="hljs-string">'./web-sockets'</span>
+
+chai.use(sinonChai)
+
+describe(<span class="hljs-string">'Entries controller'</span>, () =&gt; {
+  let passportStub
+  const sandbox = sinon.sandbox.create()
+
+  beforeAll(() =&gt; {
+    passportStub = stubPassport(app)
+  })
+
+  afterAll(() =&gt; {
+    passportStub.uninstall()
+  })
+
+  afterEach(() =&gt; {
+    passportStub.logout()
+    sandbox.restore()
+  })
+
+  describe(<span class="hljs-string">'when logged out'</span>, () =&gt; {
+    it(<span class="hljs-string">'should redirect+flash on anonymous `/entries`'</span>, () =&gt; {
+      return request(app)
+        .get(<span class="hljs-string">'/entries'</span>)
+        .expect(302)
+        .expect(<span class="hljs-string">'location'</span>, <span class="hljs-string">'/'</span>)
+        .then((res) =&gt; {
+          didFlash(res, <span class="hljs-string">'info'</span>, /Vous devez être authentifié/)
+        })
+    })
+  })
+
+  describe(<span class="hljs-string">'when logged in'</span>, () =&gt; {
+    beforeEach(() =&gt;
+      passportStub.login({ id: <span class="hljs-string">'@alphonse'</span>, name: <span class="hljs-string">'Alphonse Robichu'</span> })
+    )
+
+    it(<span class="hljs-string">'should route to listing on authenticated `/entries`'</span>, () =&gt; {
+      sandbox.stub(Entry, <span class="hljs-string">'getEntries'</span>).returns(Promise.resolve([]))
+      sandbox.stub(Entry, <span class="hljs-string">'count'</span>).returns(Promise.resolve(0))
+      sandbox.stub(Entry, <span class="hljs-string">'tags'</span>).returns(Promise.resolve([]))
+
+      return request(app)
+        .get(<span class="hljs-string">'/entries'</span>)
+        .expect(200)
+        .expect(/bookmarks/)
+    })
+
+    it(<span class="hljs-string">'should render the entry creation form on `/entries/new`'</span>, () =&gt; {
+      sandbox.stub(Entry, <span class="hljs-string">'tags'</span>).returns(Promise.resolve([]))
+
+      return request(app)
+        .get(<span class="hljs-string">'/entries/new'</span>)
+        .expect(200)
+        .expect(/Nouveau bookmark/)
+    })
+
+    it(<span class="hljs-string">'should load a valid entry URL just fine'</span>, () =&gt; {
+      const entry = generateFakeEntry()
+      sandbox.stub(Entry, <span class="hljs-string">'getEntry'</span>).returns(Promise.resolve(entry))
+
+      return request(app)
+        .get(`/entries/${entry.id}<span class="hljs-string">`)
+        .expect(200)
+        .expect(new RegExp(entry.title))
+    })
+
+    it('should deny an invalid-BSON entry URL', () =&gt; {
+      return request(app)
+        .get('/entries/foobar')
+        .expect(302)
+        .expect('location', '/entries')
+        .then((res) =&gt; {
+          didFlash(res, 'info', /Ce bookmark n[’']existe pas/)
+        })
+    })
+
+    it('should trigger a proper-payload websocket broadcast on entry creation', () =&gt; {
+      const entry = generateFakeEntry({ url: 'http://www.example.com' })
+      const spy = sandbox.stub(ws, 'broadcast')
+      sandbox.stub(Entry, 'post').returns(Promise.resolve(entry))
+      nock(entry.url)
+        .get('/')
+        .reply(
+          200,
+          '&lt;head&gt;&lt;title&gt;That was fast&lt;/title&gt;&lt;/head&gt;&lt;body&gt;&lt;p&gt;42 tips to mock your network code&lt;/body&gt;'
+        )
+
+      return request(app)
+        .post('/entries')
+        .send(`</span>url=${entry.url}<span class="hljs-string">`)
+        .expect(302)
+        .expect('location', `</span>/entries/${entry.id}<span class="hljs-string">`)
+        .then((res) =&gt; {
+          expect(spy).to.have.been.calledWith('new-entry', entry)
+        })
+    })
+  })
+})
+</span></div></div></div></div></body></html>

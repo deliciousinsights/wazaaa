@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><title>common/helpers</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="common/helpers"><meta name="groc-project-path" content="src/common/helpers.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/common/helpers.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="helpers-partags-serveurclient">Helpers partagés serveur/client</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> moment <span class="hljs-keyword">from</span> <span class="hljs-string">'moment'</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">'moment/locale/fr'</span>
+
+moment.locale(<span class="hljs-string">'fr'</span>)
+
+function populateHelpers(helpers) {
+  Object.assign(helpers, {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Formatage de date/heure sur format libre, avec un format long
+comme défaut.  On peut aussi lui passer une entité équipée d&#39;un
+champ <code>postedAt</code> (bookmark, commentaire) qui sera alors utilisé.</p></div></div><div class="code"><div class="wrapper">    formatDate(d = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(), format = <span class="hljs-string">'dddd D MMMM YYYY à HH:mm'</span>) {
+      d = d.postedAt || d
+
+      <span class="hljs-keyword">return</span> moment(d).format(format)
+    },</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Pluraliseur basique FR, la forme plurielle étant optionnelle
+(si elle n&#39;est pas fournie, on ajoutera un &quot;s&quot; au singulier).</p></div></div><div class="code"><div class="wrapper">    pluralize(count, singular, plural) {
+      <span class="hljs-keyword">const</span> term = count &gt; <span class="hljs-number">1</span> ? plural || singular + <span class="hljs-string">'s'</span> : singular
+      <span class="hljs-keyword">return</span> <span class="hljs-string">`<span class="hljs-subst">${count}</span> <span class="hljs-subst">${term}</span>`</span>
+    },
+  })
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> populateHelpers</div></div></div></div></body></html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en"><head><title>test/factories/entries</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../../"><meta name="groc-document-path" content="test/factories/entries"><meta name="groc-project-path" content="test/factories/entries.js"><link rel="stylesheet" type="text/css" media="all" href="../../assets/style.css"><script type="text/javascript" src="../../assets/behavior.js"></script><body><div id="meta"><div class="file-path">test/factories/entries.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> objectId <span class="hljs-keyword">from</span> <span class="hljs-string">'bson-objectid'</span>
+<span class="hljs-keyword">import</span> faker <span class="hljs-keyword">from</span> <span class="hljs-string">'faker'</span>
+
+export function generateFakeEntry(fields = {}) {
+  const basis = {
+    id: objectId().toHexString(),
+    url: faker.internet.url(),
+    title: faker.lorem.sentence(),
+    excerpt: faker.lorem.text(),
+    postedAt: faker.date.past(),
+    tags: [],
+    poster: {
+      name: <span class="hljs-string">'Alphonse Robichu'</span>,
+      email: <span class="hljs-string">'alphonse@robichu.name'</span>,
+      id: <span class="hljs-string">'@alphonse'</span>,
+    },
+    comments: [],
+
+    score: 0,
+
+    upVoters: [],
+    downVoters: [],
+  }
+
+  return {
+    ...basis,
+    ...fields,
+    toJSON() {
+      return this
+    },
+  }
+}
+
+export default generateFakeEntry</div></div></div></div></body></html>

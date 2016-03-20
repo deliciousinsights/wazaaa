@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="en"><head><title>controllers/entries</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="controllers/entries"><meta name="groc-project-path" content="src/controllers/entries.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/controllers/entries.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="contrleur-des-bookmarks">Contrôleur des bookmarks</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> { Router } <span class="hljs-keyword">from</span> <span class="hljs-string">'express'</span>
+<span class="hljs-keyword">import</span> fetch <span class="hljs-keyword">from</span> <span class="hljs-string">'isomorphic-fetch'</span>
+<span class="hljs-keyword">import</span> unfluff <span class="hljs-keyword">from</span> <span class="hljs-string">'unfluff'</span>
+
+<span class="hljs-keyword">import</span> Entry <span class="hljs-keyword">from</span> <span class="hljs-string">'../models/Entry'</span>
+<span class="hljs-keyword">import</span> { broadcast } <span class="hljs-keyword">from</span> <span class="hljs-string">'./web-sockets'</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Chaque contrôleur exporte un routeur Express.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> router = <span class="hljs-keyword">new</span> Router()</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Middleware vérifiant qu&#39;on est authentifié (Passport aura rempli <code>req.user</code>)</p></div></div><div class="code"><div class="wrapper">router.use(requireAuthentication)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Middleware pré-chargeant l&#39;entité bookmark (<code>Entry</code>) pour toute URL REST de
+type identité (<code>/entries/BSON_ID</code> éventuellement suivie d&#39;une fin de chemin).
+Si l&#39;entité n&#39;existe pas, on ramène au listing.</p></div></div><div class="code"><div class="wrapper">router.use(<span class="hljs-string">'/:id'</span>, loadAndVerifyEntry)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Routes RESTful choisies + quelques actions modifiantes</p></div></div><div class="code"><div class="wrapper">router.get(<span class="hljs-string">'/'</span>, listEntries)
+router.post(<span class="hljs-string">'/'</span>, createEntry)
+router.get(<span class="hljs-string">'/new'</span>, newEntry)
+router.get(<span class="hljs-string">'/:id'</span>, showEntry)
+router.patch(<span class="hljs-string">'/:id/downvote'</span>, downvoteEntry)
+router.patch(<span class="hljs-string">'/:id/upvote'</span>, upvoteEntry)
+router.post(<span class="hljs-string">'/:id/comments'</span>, commentEntry)
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> router</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ajout d&#39;un commentaire à un bookmark.  D&#39;un point de vue strictement « conventions » on
+aurait dû faire un contrôleur dédié avec une action <code>create</code> mais j&#39;ai trouvé ça un peu
+<em>overkill</em> sur ce coup, donc bon…</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">commentEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">await</span> req.entry.comment(req.user, req.body.text)
+    req.flash(<span class="hljs-string">'success'</span>, <span class="hljs-string">'Votre commentaire a bien été ajouté.'</span>)
+  } <span class="hljs-keyword">catch</span> (err) {
+    req.flash(
+      <span class="hljs-string">'error'</span>,
+      <span class="hljs-string">`Votre commentaire n’a pas pu être ajouté : <span class="hljs-subst">${err.message}</span>`</span>
+    )
+  }
+  res.redirect(<span class="hljs-string">`/entries/<span class="hljs-subst">${req.entry.id}</span>`</span>)
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Création d&#39;un bookmark</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  <span class="hljs-keyword">try</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Merci <code>isomorphic-fetch</code> qui nous fournit un requêtage HTTP par promesse,
+dont la valeur d&#39;accomplissement est la réponse, qu’on chaîne avec une promesse sur
+le corps de réponse, en tant que texte !</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">const</span> urlReq = <span class="hljs-keyword">await</span> fetch(req.body.url)
+    <span class="hljs-keyword">const</span> html = <span class="hljs-keyword">await</span> urlReq.text()
+    <span class="hljs-keyword">const</span> analysis = unfluff(html)
+    <span class="hljs-keyword">const</span> entry = <span class="hljs-keyword">await</span> Entry.post({
+      excerpt: analysis.text.slice(<span class="hljs-number">0</span>, <span class="hljs-number">100</span>) + <span class="hljs-string">'…'</span>,
+      poster: req.user,
+      tags: req.body.tags,
+      title: analysis.title,
+      url: req.body.url,
+    })</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>On notifie par websockets les clients concernés.  Attention au champ <code>poster</code>, qui
+n&#39;a pas été prérempli suite à cette simple création, mais que le côté client voudra
+utiliser : on simule son remplissage à la main :-)</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">const</span> notif = entry.toJSON()
+    notif.poster = req.user
+    broadcast(<span class="hljs-string">'new-entry'</span>, notif)
+
+    req.flash(<span class="hljs-string">'success'</span>, <span class="hljs-string">`Votre bookmark « <span class="hljs-subst">${entry.title}</span> » a bien été créé.`</span>)
+    res.redirect(<span class="hljs-string">`/entries/<span class="hljs-subst">${entry.id}</span>`</span>)
+  } <span class="hljs-keyword">catch</span> (err) {
+    req.flash(
+      <span class="hljs-string">'error'</span>,
+      <span class="hljs-string">`Une erreur est survenue en traitant cette URL : <span class="hljs-subst">${err.message}</span>`</span>
+    )
+    res.redirect(<span class="hljs-string">'/entries/new'</span>)
+  }
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Downvote d&#39;un bookmark.  Le code est tellement similaire à celui de l&#39;upvote qu&#39;on l&#39;a factorisé.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downvoteEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  voteOnEntry(req, res, -<span class="hljs-number">1</span>)
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Listing des bookmarks.  La seule petite complexité rajoutée est qu&#39;on a besoin, séparément,
+d&#39;un <code>Entry.getEntries</code> et d&#39;un <code>Entry.tags</code>.  Elles sont ici séquentielles mais on pourrait facilement
+les paralléliser avec un équivalent de <code>Promise.all</code>, ce qui allègerait aussi ce code : essayez donc !</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">listEntries</span>(<span class="hljs-params">req, res</span>) </span>{
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> [tags, entryCount, entries] = <span class="hljs-keyword">await</span> <span class="hljs-built_in">Promise</span>.all([
+      Entry.tags(),
+      Entry.count(),
+      Entry.getEntries(req.query),
+    ])
+    res.render(<span class="hljs-string">'entries/index'</span>, {
+      pageTitle: <span class="hljs-string">'Les bookmarks'</span>,
+      entries,
+      entryCount,
+      tags,
+    })
+  } <span class="hljs-keyword">catch</span> (err) {
+    req.flash(<span class="hljs-string">'error'</span>, <span class="hljs-string">`Impossible d’afficher les bookmarks : <span class="hljs-subst">${err.message}</span>`</span>)
+    res.redirect(<span class="hljs-string">'/'</span>)
+  }
+}
+
+<span class="hljs-keyword">const</span> NON_RESOURCE_IDS = [<span class="hljs-string">'new'</span>]
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">loadAndVerifyEntry</span>(<span class="hljs-params">req, res, next</span>) </span>{
+  <span class="hljs-keyword">if</span> (NON_RESOURCE_IDS.includes(req.params.id)) {
+    <span class="hljs-keyword">return</span> next()
+  }
+
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">const</span> entry = <span class="hljs-keyword">await</span> Entry.getEntry(req.params.id)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Souci SQL ou entité introuvable : on sera gérés par le dernier callback
+de rejet de promesse.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (!entry) {
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">`No entry found for ID <span class="hljs-subst">${req.params.id}</span>`</span>)
+    }
+
+    req.entry = entry
+    next()
+  } <span class="hljs-keyword">catch</span> (err) {
+    req.flash(<span class="hljs-string">'info'</span>, <span class="hljs-string">`Ce bookmark n’existe pas (ou plus) <span class="hljs-subst">${err.message}</span>`</span>)
+    res.redirect(<span class="hljs-string">'/entries'</span>)
+  }
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Formulaire de création d&#39;un bookmark.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">newEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  <span class="hljs-keyword">const</span> tags = <span class="hljs-keyword">await</span> Entry.tags()
+  res.render(<span class="hljs-string">'entries/new'</span>, { pageTitle: <span class="hljs-string">'Nouveau bookmark'</span>, tags })
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">requireAuthentication</span>(<span class="hljs-params">req, res, next</span>) </span>{
+  <span class="hljs-keyword">if</span> (req.isAuthenticated()) {
+    <span class="hljs-keyword">return</span> next()
+  }
+
+  req.flash(<span class="hljs-string">'info'</span>, <span class="hljs-string">'Vous devez être authentifié·e pour accéder aux bookmarks.'</span>)
+  res.redirect(<span class="hljs-string">'/'</span>)
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Affichage d&#39;un bookmark.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">showEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  <span class="hljs-keyword">const</span> { entry } = req
+  res.render(<span class="hljs-string">'entries/show'</span>, { pageTitle: entry.title, entry })
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Upvote d&#39;un bookmark.  Le code est tellement similaire à celui du downvote qu&#39;on l&#39;a factorisé.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">upvoteEntry</span>(<span class="hljs-params">req, res</span>) </span>{
+  voteOnEntry(req, res, +<span class="hljs-number">1</span>)
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Code central de vote (up/down) d&#39;un bookmark.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">voteOnEntry</span>(<span class="hljs-params">req, res, offset</span>) </span>{
+  <span class="hljs-keyword">const</span> { entry, user } = req
+  <span class="hljs-keyword">try</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Si l&#39;utilisateur courant a déjà voté pour le bookmark, refuser son lobbying ;-)</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (entry.votedBy(user)) {
+      req.flash(<span class="hljs-string">'error'</span>, <span class="hljs-string">'Vous avez déjà voté pour ce bookmark…'</span>)
+    } <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">await</span> entry.voteBy(user, offset)
+      req.flash(<span class="hljs-string">'success'</span>, <span class="hljs-string">'Votre vote a bien été pris en compte'</span>)
+    }
+  } <span class="hljs-keyword">catch</span> (err) {
+    req.flash(
+      <span class="hljs-string">'error'</span>,
+      <span class="hljs-string">`Votre vote n’a pas pu être pris en compte : <span class="hljs-subst">${err.message}</span>`</span>
+    )
+  }
+  res.redirect(<span class="hljs-string">`/entries/<span class="hljs-subst">${entry.id}</span>`</span>)
+}</div></div></div></div></body></html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en"><head><title>client/lib/notifications</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../../"><meta name="groc-document-path" content="client/lib/notifications"><meta name="groc-project-path" content="src/client/lib/notifications.js"><link rel="stylesheet" type="text/css" media="all" href="../../assets/style.css"><script type="text/javascript" src="../../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/client/lib/notifications.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="notifications-web-sockets">Notifications Web Sockets</h1>
+<p>La création d’un bookmark par le serveur notifie tout le monde
+par Web Sockets.  Ce module initialise un écouteur s’il détecte
+dans la page la liste des bookmarks (<code>table#entries</code>), et réagit
+à toute notif en l&#39;insérant en haut avec un petit effet de couleur.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> $ from <span class="hljs-string">'jquery'</span>
+<span class="hljs-keyword">import</span> io <span class="hljs-keyword">from</span> <span class="hljs-string">'socket.io-client'</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">'../css/entries.styl'</span>
+
+<span class="hljs-keyword">import</span> populateHelpers <span class="hljs-keyword">from</span> <span class="hljs-string">'../../common/helpers'</span>
+<span class="hljs-keyword">import</span> template <span class="hljs-keyword">from</span> <span class="hljs-string">'../../common/views/entry.pug'</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ces modules sont partagés avec le côté serveur : d&#39;abord les helpers…
+Ensuite le template de la vue Pug !  Grâce au <code>pug-loader</code> de Webpack, il
+a été pré-compilé en un module renvoyant une fonction JS prête à l&#39;emploi.</p></div></div><div class="code"><div class="wrapper">$(initNotifications)
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initNotifications</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">const</span> container = $(<span class="hljs-string">'table#entries tbody'</span>)
+  <span class="hljs-keyword">if</span> (container.length === <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">return</span>
+  }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Et hop, on se connecte !</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">const</span> socket = io()
+
+  socket.on(<span class="hljs-string">'new-entry'</span>, (entry) =&gt; {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ajouter un flag <code>injected</code> pour coller une classe de couleur initiale</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">const</span> locals = { entry, injected: <span class="hljs-literal">true</span> }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Incruster au scope Jade les helpers partagés avec le côté serveur
+(notamment <code>formatDate</code>)</p></div></div><div class="code"><div class="wrapper">    populateHelpers(locals)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Faire le rendering et l&#39;incruster en haut de la liste</p></div></div><div class="code"><div class="wrapper">    container.prepend(template(locals))</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Dès qu&#39;on est renderés (dès que le navigateur a désérialisé notre HTML dans
+le DOM et a pu redonner la main à JS), retirer la classe : une transition CSS
+fera un fondu de 0,7s sur la couleur de fond.</p></div></div><div class="code"><div class="wrapper">    setTimeout(() =&gt; {
+      container.find(<span class="hljs-string">'tr.injected'</span>).removeClass(<span class="hljs-string">'injected'</span>)
+    }, <span class="hljs-number">0</span>)
+  })
+}</div></div></div></div></body></html>

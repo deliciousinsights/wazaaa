@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="en"><head><title>controllers/users</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="controllers/users"><meta name="groc-project-path" content="src/controllers/users.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/controllers/users.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="contrleur-des-accs">Contrôleur des accès</h1>
+<p>Dans cette application, on auto-crée les profils sur base des authentifications
+dans les réseaux sociaux, et on ne permet pas ensuite des modifier ou de les fusionner.
+C&#39;est <em>très</em> minimaliste, mais on est pressés par le temps et on ne part pas sur la base
+du <a href="https://github.com/sahat/hackathon-starter">Hackathon Starter</a>…</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> { Router } <span class="hljs-keyword">from</span> <span class="hljs-string">'express'</span>
+<span class="hljs-keyword">import</span> passport <span class="hljs-keyword">from</span> <span class="hljs-string">'passport'</span>
+<span class="hljs-keyword">import</span> { Strategy <span class="hljs-keyword">as</span> FacebookStrategy } <span class="hljs-keyword">from</span> <span class="hljs-string">'passport-facebook'</span>
+<span class="hljs-keyword">import</span> { Strategy <span class="hljs-keyword">as</span> TwitterStrategy } <span class="hljs-keyword">from</span> <span class="hljs-string">'passport-twitter'</span>
+
+<span class="hljs-keyword">import</span> User <span class="hljs-keyword">from</span> <span class="hljs-string">'../models/User'</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Activer Passport repose sur 4 étapes :</p>
+<ol>
+<li>Configurer des stratégies d&#39;authentification (au moins une)</li>
+<li>Associer ces stratégies à des routes (pour de l&#39;OAuth, une route pour demander
+l&#39;authentification et une pour traiter le callback en redirection)</li>
+<li>Activer le middleware principal qui va gérer la session sérialisée d&#39;authentification</li>
+<li>Fournir les codes de sérialisation/désérialisation vers/depuis la session.</li>
+</ol>
+<p>Voici déjà la configuration de la stratégie Twitter.</p></div></div><div class="code"><div class="wrapper">passport.use(
+  <span class="hljs-keyword">new</span> TwitterStrategy(
+    {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p><strong>Ne partagez pas ces clés Twitter n&#39;importe où : <a href="https://dev.twitter.com/apps/new">faites les vôtres</a> !</strong></p></div></div><div class="code"><div class="wrapper">      consumerKey: <span class="hljs-string">'0mC7OanUtfH0ZHOn7xD7Aw'</span>,
+      consumerSecret: <span class="hljs-string">'Ch8Fy2bFgIMnnlPyB9stgTkwO06yOu4Of3PjhiDaXA'</span>,
+      callbackURL: <span class="hljs-string">'/users/auth/twitter/callback'</span>,
+    },
+    (token, tokenSecret, profile, done) =&gt; {
+      User.findOrCreateByAuth(
+        <span class="hljs-string">`@<span class="hljs-subst">${profile.username}</span>`</span>,
+        profile.displayName,
+        <span class="hljs-string">'twitter'</span>,
+        done
+      )
+    }
+  )
+)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>…et la stratégie Facebook</p></div></div><div class="code"><div class="wrapper">passport.use(
+  <span class="hljs-keyword">new</span> FacebookStrategy(
+    {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p><strong>Ne partagez pas ces clés Facebook n&#39;importe où : <a href="https://developers.facebook.com/">faites les vôtres</a> !</strong></p></div></div><div class="code"><div class="wrapper">      clientID: <span class="hljs-string">'213376528865347'</span>,
+      clientSecret: <span class="hljs-string">'753494ad3c02f9d9b5fb3617bbd88c1e'</span>,
+      callbackURL: <span class="hljs-string">'/users/auth/facebook/callback'</span>,
+    },
+    (token, tokenSecret, profile, done) =&gt; {
+      User.findOrCreateByAuth(profile.id, profile.displayName, <span class="hljs-string">'facebook'</span>, done)
+    }
+  )
+)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Sérialisation du résultat de callback des stratégies dans la session.
+Ici on fait en sorte que <code>User.findOrCreateByAuth</code> renvoie juste le champ <code>_id</code>, ça facilite les choses…</p></div></div><div class="code"><div class="wrapper">passport.serializeUser((id, done) =&gt; {
+  done(<span class="hljs-literal">null</span>, id)
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Désérialisation de la session en un vrai modèle (ici <code>User</code>), ce qui permettra à Passport de peupler
+<code>req.user</code> à l&#39;aide de son middleware principal.</p></div></div><div class="code"><div class="wrapper">passport.deserializeUser((id, done) =&gt; {
+  User.findById(id, done)
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Chaque contrôleur exporte un routeur Express.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> router = <span class="hljs-keyword">new</span> Router()</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>On standardise les routes de tous nos providers OAuth, autant faire une boucle…</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> provider <span class="hljs-keyword">of</span> [<span class="hljs-string">'twitter'</span>, <span class="hljs-string">'facebook'</span>]) {
+  router.get(<span class="hljs-string">`/get-in/<span class="hljs-subst">${provider}</span>`</span>, passport.authenticate(provider))
+  router.get(
+    <span class="hljs-string">`/auth/<span class="hljs-subst">${provider}</span>/callback`</span>,
+    passport.authenticate(provider, {
+      successRedirect: <span class="hljs-string">'/entries'</span>,
+      failureRedirect: <span class="hljs-string">'/'</span>,
+      failureFlash: <span class="hljs-literal">true</span>,
+    })
+  )
+}
+
+router.get(<span class="hljs-string">'/logout'</span>, logout)
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">logout</span>(<span class="hljs-params">req, res</span>) </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p><code>req.logout()</code> est injectée par le middleware principal de Passport,
+ce n&#39;est pas une méthode fournie par Express…</p></div></div><div class="code"><div class="wrapper">  req.logout()
+  req.flash(<span class="hljs-string">'success'</span>, <span class="hljs-string">'Vous avez bien été déconnecté·e'</span>)
+  res.redirect(<span class="hljs-string">'/'</span>)
+}
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> router</div></div></div></div></body></html>

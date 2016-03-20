@@ -1,0 +1,17 @@
+<!DOCTYPE html><html lang="en"><head><title>models/connection</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="models/connection"><meta name="groc-project-path" content="src/models/connection.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/models/connection.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="connexion--mongodb">Connexion à mongoDB</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> chalk <span class="hljs-keyword">from</span> <span class="hljs-string">'chalk'</span>
+<span class="hljs-keyword">import</span> mongoose <span class="hljs-keyword">from</span> <span class="hljs-string">'mongoose'</span>
+
+mongoose.connect(process.env.MONGODB_URI || <span class="hljs-string">'mongodb://localhost/wazaaa'</span>)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>On prend soin de toujours indiquer si la connexion a échoué, car c’est
+pénible à diagnostiquer sinon.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> db = mongoose.connection
+db.on(<span class="hljs-string">'error'</span>, () =&gt; {
+  <span class="hljs-built_in">console</span>.error(chalk<span class="hljs-string">`{red ✘ CANNOT CONNECT TO mongoDB DATABASE wazaaa!}`</span>)
+})</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>On exporte une fonction d&#39;enregistrement d&#39;un callback de connexion
+réussie, si ça intéresse l&#39;appelant (<code>server.js</code> s&#39;en sert pour confirmer
+dans la console que la connexion est prête).</p>
+<p>Ce n&#39;est pas anodun, car Mongoose va mettre en file d&#39;attente toute opération
+DB jusqu&#39;à ce que la connexion soit établie, donc vérifier ce dernier point
+est utile.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">export</span> <span class="hljs-keyword">default</span> <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">listenToConnectionOpen</span>(<span class="hljs-params">onceReady</span>) </span>{
+  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> onceReady === <span class="hljs-string">'function'</span>) {
+    db.on(<span class="hljs-string">'open'</span>, onceReady)
+  }
+}</div></div></div></div></body></html>

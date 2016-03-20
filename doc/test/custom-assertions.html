@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><title>test/custom-assertions</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="test/custom-assertions"><meta name="groc-project-path" content="test/custom-assertions.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">test/custom-assertions.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> { AssertionError } <span class="hljs-keyword">from</span> <span class="hljs-string">'chai'</span>
+
+export function didFlash(res, key, value = null) {
+  const flash = getFlash(res)
+  if (!(key in flash)) {
+    const knownKeys = Object.keys(flash)
+      .sort()
+      .map((k) =&gt; `<span class="hljs-string">'${k}'</span>`)
+      .join(<span class="hljs-string">', '</span>)
+    throw new AssertionError(
+      `Missing key <span class="hljs-string">'${key}'</span> in flash (available keys: ${knownKeys})<span class="hljs-string">`
+    )
+  }
+
+  if (value == null) {
+    return
+  }
+
+  if (typeof value === 'string' &amp;&amp; flash[key] !== value) {
+    throw new AssertionError(
+      `</span>expected <span class="hljs-string">'${key}'</span> flash <span class="hljs-string">'${value}'</span>, got <span class="hljs-string">'${flash[key]}'</span><span class="hljs-string">`
+    )
+  }
+
+  if (value instanceof RegExp &amp;&amp; !value.test(flash[key])) {
+    throw new AssertionError(
+      `</span>expected <span class="hljs-string">'${key}'</span> flash to match ${value}, got non-matching <span class="hljs-string">'${
+        flash[key]
+      }'</span><span class="hljs-string">`
+    )
+  }
+}
+
+export function getFlash(res) {
+  return getSession(res).flash || {}
+}
+
+export function getSession(res) {
+  const cookies = res.headers['set-cookie'] || []
+  const cookie = cookies.find((s) =&gt; s.startsWith('wazaaa:session='))
+  const b64 = cookie.match(/^wazaaa:session=(.+?);/)[1]
+  if (!b64) return {}
+
+  return JSON.parse(Buffer.from(b64, 'base64').toString())
+}
+</span></div></div></div></div></body></html>

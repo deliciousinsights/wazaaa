@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en"><head><title>client/lib/tags</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../../"><meta name="groc-document-path" content="client/lib/tags"><meta name="groc-project-path" content="src/client/lib/tags.js"><link rel="stylesheet" type="text/css" media="all" href="../../assets/style.css"><script type="text/javascript" src="../../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/client/lib/tags.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="ui-de-tagging">UI de tagging</h1></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">import</span> $ from <span class="hljs-string">'jquery'</span>
+
+<span class="hljs-keyword">import</span> <span class="hljs-string">'select2-bootstrap-theme/dist/select2-bootstrap.css'</span>
+<span class="hljs-keyword">import</span> <span class="hljs-string">'select2/dist/css/select2.css'</span>
+
+window.jQuery = $
+<span class="hljs-built_in">require</span>(<span class="hljs-string">'select2/dist/js/select2.full'</span>)
+<span class="hljs-built_in">require</span>(<span class="hljs-string">'select2/dist/js/i18n/fr'</span>)</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Activation de l&#39;UI de tagging et fourniture des tags déjà connus
+pour tout champ de formulaire avec <code>name=&quot;tags&quot;</code>.  Plus pro qu&#39;une
+bête saisie textuelle.</p></div></div><div class="code"><div class="wrapper">$(initTagger)
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">initTagger</span>(<span class="hljs-params"></span>) </span>{
+  $(<span class="hljs-string">'select[name="tags"]'</span>).each((i, field) =&gt; {
+    field = $(field)
+    field.select2({
+      placeholder: <span class="hljs-string">'tag, tag…'</span>,
+      theme: <span class="hljs-string">'bootstrap'</span>,
+      tags: <span class="hljs-literal">true</span>,
+      tokenSeparators: [<span class="hljs-string">','</span>, <span class="hljs-string">' '</span>],
+    })
+  })
+}</div></div></div></div></body></html>
