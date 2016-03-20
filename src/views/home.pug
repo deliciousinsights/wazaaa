@@ -1,6 +1,14 @@
 extend _layout
 
 block content
-  h1 Bienvenue dans #{title} !
+  if user
+    h1 Bienvenue dans #{title}, #{user.name} !
 
-  p Envie de <a href="/entries">consulter les bookmarks</a> ?
+    p Envie de <a href="/entries">consulter les bookmarks</a> ?
+  else
+    h1 Bienvenue dans #{title}
+
+    p.text-center
+      a.btn.btn-lg.btn-primary(href="/users/get-in/twitter") Connectez-vous avec Twitter
+      | &nbsp;&nbsp;&nbsp;
+      a.btn.btn-lg.btn-primary(href="/users/get-in/facebook") Connectez-vous avec Facebook
