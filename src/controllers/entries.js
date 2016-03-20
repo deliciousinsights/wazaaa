@@ -3,10 +3,12 @@ import fetch from 'isomorphic-fetch'
 import unfluff from 'unfluff'
 
 import Entry from '../models/Entry'
+import { broadcast } from './web-sockets'
 
 const router = new Router()
 
 router.use(requireAuthentication)
+
 router.use('/:id', loadAndVerifyEntry)
 
 router.get('/', listEntries)
@@ -44,6 +46,9 @@ async function createEntry(req, res) {
       title: analysis.title,
       url: req.body.url,
     })
+    const notif = entry.toJSON()
+    notif.poster = req.user
+    broadcast('new-entry', notif)
 
     req.flash('success', `Votre bookmark « ${entry.title} » a bien été créé.`)
     res.redirect(`/entries/${entry.id}`)

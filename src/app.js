@@ -39,7 +39,10 @@ app.use(
     secret: 'Node.js c’est de la balle !',
   })
 )
-app.use(csrfProtect())
+if (!isTest) {
+  app.use(csrfProtect())
+}
+
 app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
@@ -55,10 +58,10 @@ if (isDev) {
   app.locals.pretty = true
 }
 
-app.use(async (req, res, next) => {
+app.use((req, res, next) => {
   const { query, url, user } = req
   Object.assign(res.locals, {
-    csrfToken: req.csrfToken(),
+    csrfToken: (isTest && '__TEST__') || req.csrfToken(),
     flash: req.flash(),
     query,
     url,

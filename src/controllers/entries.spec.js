@@ -1,4 +1,7 @@
+import chai, { expect } from 'chai'
+import nock from 'nock'
 import sinon from 'sinon'
+import sinonChai from 'sinon-chai'
 import request from 'supertest'
 
 import { didFlash } from '../../test/custom-assertions'
@@ -6,6 +9,9 @@ import generateFakeEntry from '../../test/factories/entries'
 import stubPassport from '../../test/stubs/passport-stub'
 import app from '../app'
 import Entry from '../models/Entry'
+import * as ws from './web-sockets'
+
+chai.use(sinonChai)
 
 describe('Entries controller', () => {
   let passportStub
@@ -75,6 +81,27 @@ describe('Entries controller', () => {
         .expect('location', '/entries')
         .then((res) => {
           didFlash(res, 'info', /Ce bookmark n[’']existe pas/)
+        })
+    })
+
+    it('should trigger a proper-payload websocket broadcast on entry creation', () => {
+      const entry = generateFakeEntry({ url: 'http://www.example.com' })
+      const spy = sandbox.stub(ws, 'broadcast')
+      sandbox.stub(Entry, 'post').returns(Promise.resolve(entry))
+      nock(entry.url)
+        .get('/')
+        .reply(
+          200,
+          '<head><title>That was fast</title></head><body><p>42 tips to mock your network code</body>'
+        )
+
+      return request(app)
+        .post('/entries')
+        .send(`url=${entry.url}`)
+        .expect(302)
+        .expect('location', `/entries/${entry.id}`)
+        .then((res) => {
+          expect(spy).to.have.been.calledWith('new-entry', entry)
         })
     })
   })
