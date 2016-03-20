@@ -5,9 +5,16 @@ import app from '../app'
 import { didFlash } from '../../test/custom-assertions'
 import Entry from '../models/Entry'
 import generateFakeEntry from '../../test/factories/entries'
+import User from '../models/User'
 
 describe('Entries controller', () => {
   const sandbox = sinon.sandbox.create()
+
+  beforeEach(() => {
+    sandbox
+      .stub(User, 'findOne')
+      .returns(Promise.resolve({ _id: '@alphonse', name: 'Alphonse Robichu' }))
+  })
 
   afterEach(() => {
     sandbox.restore()

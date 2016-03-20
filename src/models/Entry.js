@@ -2,8 +2,16 @@ import mongoose, { Schema } from 'mongoose'
 import _ from 'underscore'
 
 const entrySchema = new Schema({
+  comments: [
+    {
+      text: { type: String, required: true },
+      author: { type: String, ref: 'User' },
+      postedAt: { type: Date, default: Date.now, index: true },
+    },
+  ],
   excerpt: String,
   postedAt: { type: Date, default: Date.now, index: true },
+  poster: { type: String, ref: 'User' },
   tags: { type: [String], index: true },
   title: String,
   url: { type: String, required: true },
@@ -11,12 +19,18 @@ const entrySchema = new Schema({
 
 Object.assign(entrySchema.statics, {
   getEntry(id) {
-    return this.findById(id)
+    return this.findById(id).populate('poster comments.author')
   },
 
   post(fields) {
     fields.tags = normalizeTags(fields.tags)
     return this.create(fields)
+  },
+})
+
+Object.assign(entrySchema.methods, {
+  comment(author, text) {
+    return this.update({ $push: { comments: { author, text } } })
   },
 })
 

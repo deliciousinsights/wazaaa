@@ -11,6 +11,7 @@ import path from 'path'
 import populateHelpers from './common/helpers'
 import entriesController from './controllers/entries'
 import mainController from './controllers/main'
+import User from './models/User'
 
 mongoose.Promise = Promise
 
@@ -49,13 +50,15 @@ if (isDev) {
   app.locals.pretty = true
 }
 
-app.use((req, res, next) => {
-  const { query, url } = req
+app.use(async (req, res, next) => {
+  req.user = await User.findOne()
+  const { query, url, user } = req
   Object.assign(res.locals, {
     csrfToken: req.csrfToken(),
     flash: req.flash(),
     query,
     url,
+    user,
   })
   next()
 })
