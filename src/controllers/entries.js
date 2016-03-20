@@ -56,7 +56,7 @@ async function createEntry(req, res) {
 }
 
 function downvoteEntry(req, res) {
-  res.send('COMING SOON: downvoteEntry')
+  voteOnEntry(req, res, -1)
 }
 
 function listEntries(req, res) {
@@ -94,5 +94,23 @@ function showEntry(req, res) {
 }
 
 function upvoteEntry(req, res) {
-  res.send('COMING SOON: upvoteEntry')
+  voteOnEntry(req, res, +1)
+}
+
+async function voteOnEntry(req, res, offset) {
+  const { entry, user } = req
+  try {
+    if (entry.votedBy(user)) {
+      req.flash('error', 'Vous avez déjà voté pour ce bookmark…')
+    } else {
+      await entry.voteBy(user, offset)
+      req.flash('success', 'Votre vote a bien été pris en compte')
+    }
+  } catch (err) {
+    req.flash(
+      'error',
+      `Votre vote n’a pas pu être pris en compte : ${err.message}`
+    )
+  }
+  res.redirect(`/entries/${entry.id}`)
 }

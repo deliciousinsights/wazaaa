@@ -4,6 +4,7 @@ import cookieSession from 'cookie-session'
 import csrfProtect from 'csurf'
 import express from 'express'
 import { readFileSync } from 'fs'
+import methodOverride from 'method-override'
 import mongoose from 'mongoose'
 import createLogger from 'morgan'
 import path from 'path'
@@ -25,6 +26,7 @@ app.set('view engine', 'pug')
 
 app.use(express.static(publicPath))
 app.use(parseHTMLForms({ extended: true }))
+app.use(methodOverride((req) => req.body._method))
 
 if (!isTest) {
   app.use(createLogger(isDev ? 'dev' : 'combined'))

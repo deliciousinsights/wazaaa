@@ -9,11 +9,14 @@ const entrySchema = new Schema({
       postedAt: { type: Date, default: Date.now, index: true },
     },
   ],
+  downVoters: [{ type: String, ref: 'User' }],
   excerpt: String,
   postedAt: { type: Date, default: Date.now, index: true },
   poster: { type: String, ref: 'User' },
+  score: { type: Number, default: 0, index: true },
   tags: { type: [String], index: true },
   title: String,
+  upVoters: [{ type: String, ref: 'User' }],
   url: { type: String, required: true },
 })
 
@@ -31,6 +34,20 @@ Object.assign(entrySchema.statics, {
 Object.assign(entrySchema.methods, {
   comment(author, text) {
     return this.update({ $push: { comments: { author, text } } })
+  },
+
+  voteBy(user, offset) {
+    user = 'id' in user ? user.id : user
+
+    return this.update({
+      $inc: { score: offset },
+      $addToSet: { [offset > 0 ? 'upVoters' : 'downVoters']: user },
+    })
+  },
+
+  votedBy(user) {
+    user = 'id' in user ? user.id : user
+    return this.upVoters.includes(user) || this.downVoters.includes(user)
   },
 })
 
