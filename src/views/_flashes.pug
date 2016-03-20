@@ -1,0 +1,16 @@
+//- Affichage des messages temporaires
+//- ==================================
+//-
+//- Petit "partial" sorti du layout pour des raison de découpage et de modularité,
+//- qui affiche une UI approprié pour chaque niveau de flash (message temporaire) détecté.
+//-
+//- La variable `flash` est accessible aux vues grâce à notre petit middleware correspondant
+//- dans `server.js`.
+//-
+//- Pour des raisons de CSS, on convertit le type `error` en `danger` afin de correspondre aux
+//- codes attendus par Bootstrap (`success`, `info`, `warning`… ont des classes CSS homonymes).
+each messages, kind in flash
+  - if ('error' === kind) kind = 'danger'
+  .alert(class=`alert-${kind}`)
+    each message in messages
+      p= message

@@ -1,0 +1,22 @@
+include _mixins
+
+doctype html
+html(lang="fr")
+  head
+    meta(charset="utf-8")
+    title= pageTitle ? pageTitle + ' — ' + title : title
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(rel="stylesheet" href=__assets['main.css'])
+    script(src=__assets['main.js'] defer)
+  body
+    .container
+      nav.navbar.navbar-default.navbar-static-top(role="navigation")
+        .navbar-header
+          a.navbar-brand(href="/")= title
+        ul.nav.navbar-nav
+          +navlink('/entries', 'list', 'Bookmarks')
+        if user
+          ul.nav.navbar-nav.navbar-right
+            +navlink('/users/logout', 'log-out', 'Déconnexion ' + user.name)
+      include _flashes
+      block content

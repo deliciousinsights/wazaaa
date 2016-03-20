@@ -1,0 +1,8 @@
+mixin navlink(linkUrl, glyph, label)
+  li(class= url.startsWith(linkUrl) ? 'active' : null)
+    a(href=linkUrl)
+      i.glyphicon(class=`glyphicon-${glyph}`)
+      = ' ' + label
+
+mixin tagField(id)
+  input.form-control(id=id name="tags" placeholder="tag, tag…" value=query.tags data-tags=(tags || []))

@@ -1,7 +1,6 @@
-doctype html
-html(lang="fr")
-  head
-    meta(charset="utf-8")
-    title= title
-  body
-    h1 Bienvenue dans #{title} !
+extend _layout
+
+block content
+  h1 Bienvenue dans #{title} !
+
+  p Envie de <a href="/entries">consulter les bookmarks</a> ?

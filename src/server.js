@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import express from 'express'
+import { readFileSync } from 'fs'
 import { createServer } from 'http'
 import createLogger from 'morgan'
 import path from 'path'
@@ -15,6 +16,13 @@ app.set('view engine', 'pug')
 app.use(createLogger(isDev ? 'dev' : 'combined'))
 
 app.locals.title = 'Wazaaa'
+
+app.locals.__assets = JSON.parse(
+  readFileSync(
+    path.resolve(__dirname, '..', 'public', 'manifest.json'),
+    'utf-8'
+  )
+)
 
 if (isDev) {
   app.locals.pretty = true
