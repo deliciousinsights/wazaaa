@@ -7,12 +7,13 @@ import { readFileSync } from 'fs'
 import methodOverride from 'method-override'
 import mongoose from 'mongoose'
 import createLogger from 'morgan'
+import passport from 'passport'
 import path from 'path'
 
 import populateHelpers from './common/helpers'
 import entriesController from './controllers/entries'
 import mainController from './controllers/main'
-import User from './models/User'
+import usersController from './controllers/users'
 
 mongoose.Promise = Promise
 
@@ -40,6 +41,8 @@ app.use(
 )
 app.use(csrfProtect())
 app.use(flash())
+app.use(passport.initialize())
+app.use(passport.session())
 
 app.locals.title = 'Wazaaa'
 app.locals.__assets = JSON.parse(
@@ -53,7 +56,6 @@ if (isDev) {
 }
 
 app.use(async (req, res, next) => {
-  req.user = await User.findOne()
   const { query, url, user } = req
   Object.assign(res.locals, {
     csrfToken: req.csrfToken(),
@@ -67,5 +69,6 @@ app.use(async (req, res, next) => {
 
 app.use(mainController)
 app.use('/entries', entriesController)
+app.use('/users', usersController)
 
 export default app

@@ -13,10 +13,6 @@ passport.use(
       callbackURL: '/users/auth/twitter/callback',
     },
     (token, tokenSecret, profile, done) => {
-      console.log(
-        `token: ${token}\ntokenSecret: ${tokenSecret}\nprofile:`,
-        profile
-      )
       User.findOrCreateByAuth(
         `@${profile.username}`,
         profile.displayName,
@@ -27,6 +23,32 @@ passport.use(
   )
 )
 
+passport.serializeUser((id, done) => {
+  done(null, id)
+})
+
+passport.deserializeUser((id, done) => {
+  User.findById(id, done)
+})
+
 const router = new Router()
+
+router.get('/get-in/twitter', passport.authenticate('twitter'))
+router.get(
+  '/auth/twitter/callback',
+  passport.authenticate('twitter', {
+    successRedirect: '/entries',
+    failureRedirect: '/',
+    failureFlash: true,
+  })
+)
+
+router.get('/logout', logout)
+
+function logout(req, res) {
+  req.logout()
+  req.flash('success', 'Vous avez bien été déconnecté·e')
+  res.redirect('/')
+}
 
 export default router
