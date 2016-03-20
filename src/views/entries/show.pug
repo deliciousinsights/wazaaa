@@ -1,0 +1,53 @@
+//- Affichage d'un bookmark
+//- =======================
+
+extend ../_layout
+block content
+  h1
+    = pageTitle
+    if entry.score
+      small.score  • Score : #{entry.score}
+
+  p.text-muted
+    a(href=entry.url target="_blank")= entry.url
+    each tag in entry.tags
+      | &#32;
+      span.label.label-info= tag
+
+  p Posté par #{(entry.poster || {}).name} #{formatDate(entry)}
+
+  blockquote= entry.excerpt
+
+  unless entry.votedBy && entry.votedBy(user)
+    .clearfix
+      each offset in ['up', 'down']
+        form.form-inline.pull-left(action=`/entries/${entry.id}/${offset}vote` method="post")
+          input(type="hidden" name="_method" value="patch")
+          input(type="hidden" name="_csrf" value=csrfToken)
+          button.btn(class=('up' === offset ? 'btn-success' : 'btn-danger') type="submit")
+            i.glyphicon(class=`glyphicon-thumbs-${offset}`)
+            |  #{offset}vote
+          | &nbsp;
+
+  fieldset#comments
+    legend Commentaires
+
+    unless entry.comments.length
+      p.text-muted Aucun commentaire pour le moment…
+
+    ul.list-unstyled
+      each comment in entry.comments
+        li(id=`comment${comment.id}`)
+          blockquote
+            = comment.text
+            small Posté par #{(comment.author || {}).name} #{formatDate(comment)}
+
+
+    form(method="post" action=`/entries/${entry.id}/comments`)
+      input(type="hidden" name="_csrf" value=csrfToken)
+      .form-group
+        label(for="taComment") Votre commentaire
+        textarea#taComment.form-control(name="text" rows="3" required placeholder="Une pensée profonde et originale…")
+      button.btn.btn-primary(type="submit")
+        i.glyphicon.glyphicon-plus
+        |  Ajouter votre commentaire !

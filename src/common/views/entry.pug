@@ -1,0 +1,22 @@
+//- Partiel de ligne de bookmark
+//- ============================
+
+//-
+  Partagé entre côté serveur et client, mais l'*assembly* client par Brunch et son plugin Jade
+  le précompilent en JS et exposent la fonction résultante au travers d'un module CommonJS.
+tr(id=entry.id class=injected ? 'injected' : null)
+  td
+    .lead
+      //- Si on n'a pas pu extraire de `title` (ou que le document mongoDB est incomplet), utiliser l'URL à la place
+      a(href=`/entries/${entry.id}`)= entry.title || entry.url
+      //- Le helper `formatDate` est fourni par les helpers enregistrés auprès de Jade (côté serveur) ou fournis à la
+      //- volée pour le rendering côté client (voir `client/lib/notifications.js`).
+      small.text-muted  par #{entry.poster.name} #{formatDate(entry)}
+    p
+      a.text-muted(href=entry.url target="_blank")= entry.url
+      each tag in (entry.tags || [])
+        | &#32;
+        span.label.label-default= tag
+    p.text-muted= entry.excerpt
+    if entry.score
+      .score Score : #{entry.score}

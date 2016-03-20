@@ -1,0 +1,43 @@
+//- Listing des bookmarks
+//- =====================
+
+extend ../_layout
+block content
+  h1= pageTitle
+
+  if entries && entries.length
+    //- Le helper `pluralize` est mis à disposition des vues par notre
+    //- injection du module correspondant dans `app.locals` depuis `server.js`.
+    .lead= pluralize(entries.length, 'bookmark')
+
+    form.form-inline.row(role="form")
+      .form-group.col-sm-3
+        label.sr-only(for="tagList") Tags
+        +tagField('tagList')
+      .checkbox
+        label
+          input(type="checkbox" name="tagMode" value="any")
+          |  pas forcément tous  
+      button.btn.btn-primary(type="submit")
+        i.glyphicon.glyphicon-filter
+        |  Filtrer
+
+    hr
+    p
+      a.btn.btn-primary(href="/entries/new")
+        i.glyphicon.glyphicon-plus
+        |  Ajoutez-en un !
+
+  else
+    .alert.alert-info
+      p Désolés, aucun bookmark pour le moment…
+      p
+        a.btn.btn-primary(href="/entries/new")
+          i.glyphicon.glyphicon-plus
+          |  Faites le premier !
+
+  table#entries.table.table-striped.table-hover
+    tbody
+      each entry in entries
+        //- La vue Jade inclue ici est un « partial »partagé avec le côté client
+        include ../../common/views/entry

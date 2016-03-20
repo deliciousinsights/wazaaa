@@ -1,0 +1,19 @@
+//- Saisie d'un nouveau bookmark
+//- ============================
+
+extend ../_layout
+block content
+  h1= pageTitle
+
+  form(method="post" action="/entries")
+    input(type="hidden" name="_csrf" value=csrfToken)
+    .form-group
+      label(for="edtURL") URL
+      input#edtURL.form-control(name="url" type="url" placeholder="http://…" autofocus required)
+    .form-group
+      label(for="edtTags") Tags
+      +tagField('edtTags')
+    p
+      button.btn.btn-primary(type="submit")
+        i.glyphicon.glyphicon-plus
+        |  Ajouter
