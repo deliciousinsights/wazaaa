@@ -1,4 +1,5 @@
 import { urlencoded as parseHTMLForms } from 'body-parser'
+import flash from 'connect-flash'
 import cookieSession from 'cookie-session'
 import csrfProtect from 'csurf'
 import express from 'express'
@@ -31,6 +32,7 @@ app.use(
   })
 )
 app.use(csrfProtect())
+app.use(flash())
 
 app.locals.title = 'Wazaaa'
 app.locals.__assets = JSON.parse(
@@ -45,7 +47,7 @@ app.use((req, res, next) => {
   const { query, url } = req
   Object.assign(res.locals, {
     csrfToken: req.csrfToken(),
-    flash: [],
+    flash: req.flash(),
     query,
     url,
   })
