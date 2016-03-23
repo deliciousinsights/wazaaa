@@ -49,15 +49,17 @@ passport.deserializeUser((id, done) => {
 
 const router = new Router()
 
-router.get('/get-in/twitter', passport.authenticate('twitter'))
-router.get(
-  '/auth/twitter/callback',
-  passport.authenticate('twitter', {
-    successRedirect: '/entries',
-    failureRedirect: '/',
-    failureFlash: true,
-  })
-)
+for (const provider of ['twitter', 'facebook']) {
+  router.get(`/get-in/${provider}`, passport.authenticate(provider))
+  router.get(
+    `/auth/${provider}/callback`,
+    passport.authenticate(provider, {
+      successRedirect: '/entries',
+      failureRedirect: '/',
+      failureFlash: true,
+    })
+  )
+}
 
 router.get('/logout', logout)
 
