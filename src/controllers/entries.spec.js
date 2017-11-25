@@ -22,6 +22,7 @@ describe('Entries controller', () => {
 
   it('should route to listing on `/entries`', () => {
     sandbox.stub(Entry, 'getEntries').returns(Promise.resolve([]))
+    sandbox.stub(Entry, 'count').returns(Promise.resolve(0))
 
     return request(app)
       .get('/entries')

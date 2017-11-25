@@ -5,10 +5,10 @@ extend ../_layout
 block content
   h1= pageTitle
 
-  if entries && entries.length
+  if entryCount > 0
     //- Le helper `pluralize` est mis à disposition des vues par notre
     //- injection du module correspondant dans `app.locals` depuis `server.js`.
-    .lead= pluralize(entries.length, 'bookmark')
+    .lead= pluralize(entries.length, query.tags ? 'résultat' : 'bookmark')
 
     form.form-inline.row(role="form")
       .form-group.col-sm-3
@@ -16,7 +16,7 @@ block content
         +tagField('tagList')
       .checkbox
         label
-          input(type="checkbox" name="tagMode" value="any")
+          input(type="checkbox" name="tagMode" value="any" checked=(query.tagMode === 'any'))
           |  pas forcément tous  
       button.btn.btn-primary(type="submit")
         i.glyphicon.glyphicon-filter
@@ -28,6 +28,9 @@ block content
         i.glyphicon.glyphicon-plus
         |  Ajoutez-en un !
 
+
+    if entries.length === 0
+      p Aucun bookmark ne correspond à votre recherche.
   else
     .alert.alert-info
       p Désolés, aucun bookmark pour le moment…

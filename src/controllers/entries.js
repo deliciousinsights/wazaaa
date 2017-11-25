@@ -61,8 +61,15 @@ function downvoteEntry(req, res) {
 
 async function listEntries(req, res) {
   try {
-    const entries = await Entry.getEntries(req.query)
-    res.render('entries/index', { pageTitle: 'Les bookmarks', entries })
+    const [entryCount, entries] = await Promise.all([
+      Entry.count(),
+      Entry.getEntries(req.query),
+    ])
+    res.render('entries/index', {
+      pageTitle: 'Les bookmarks',
+      entries,
+      entryCount,
+    })
   } catch (err) {
     req.flash('error', `Impossible d’afficher les bookmarks : ${err.message}`)
     res.redirect('/')
