@@ -49,6 +49,13 @@ Object.assign(entrySchema.statics, {
     fields.tags = normalizeTags(fields.tags)
     return this.create(fields)
   },
+
+  tags() {
+    return this.aggregate([
+      { $unwind: '$tags' },
+      { $sortByCount: '$tags' },
+    ]).then((tuples) => tuples.map(({ _id }) => _id))
+  },
 })
 
 Object.assign(entrySchema.methods, {
